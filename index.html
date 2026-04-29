@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chispa — Panel de Cuentas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root {
+    --bg:#F5F3EE;--surface:#fff;--border:#E2DDD6;--border-strong:#C8C0B4;
+    --text:#1A1714;--muted:#7A7268;--hint:#B0A99F;
+    --accent:#D4521A;--accent-l:#FAE8DF;
+    --blue:#1B5FA8;--blue-l:#E3EDF8;
+    --amber:#B07A0A;--amber-l:#FDF3D8;
+    --green:#2A7A3B;--green-l:#E2F3E6;
+    --red:#C0322C;--red-l:#FCEAE9;
+    --purple:#5E3FA3;--purple-l:#EEE9F9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .topbar{background:var(--text);color:#fff;padding:0 2rem;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .logo{font-family:'DM Mono',monospace;font-size:15px;letter-spacing:3px}
+  .logo span{color:var(--accent)}
+  .topbar-r{display:flex;align-items:center;gap:1rem}
+  .sync-btn{background:none;border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 14px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .sync-btn:hover{background:rgba(255,255,255,.1)}
+  .spin{font-size:13px;display:inline-block}
+  .spin.go{animation:rot .7s linear infinite}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .lastsync{font-size:11px;color:rgba(255,255,255,.4);font-family:'DM Mono',monospace}
+  .main{padding:1.5rem 2rem}
+
+  /* SETUP */
+  .setup{background:var(--blue-l);border:1px solid #B5D4F4;border-radius:10px;padding:1.5rem 2rem;margin-bottom:1.5rem}
+  .setup h3{font-size:14px;color:var(--blue);margin-bottom:.5rem}
+  .setup p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:.75rem}
+  .setup code{background:#fff;border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:'DM Mono',monospace;font-size:11px;color:var(--blue)}
+  .setup ol{padding-left:1.2rem;display:flex;flex-direction:column;gap:8px;margin-bottom:1.25rem}
+  .setup li{font-size:13px;color:var(--text);line-height:1.5}
+  .url-row{display:flex;gap:8px;margin-top:.5rem}
+  .url-input{flex:1;border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:11px;background:#fff;color:var(--text)}
+  .url-input:focus{outline:none;border-color:var(--blue)}
+  .btn-conn{background:var(--text);color:#fff;border:none;border-radius:6px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;white-space:nowrap}
+  .btn-conn:hover{opacity:.85}
+
+  .error{background:var(--red-l);border:1px solid #F09595;border-radius:8px;padding:12px 16px;font-size:13px;color:var(--red);margin-bottom:1rem;display:none}
+
+  /* STATS */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.5rem}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+  .stat-n{font-size:28px;font-weight:600;line-height:1;margin-bottom:4px}
+  .stat-l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+  /* FILTERS */
+  .filters{display:flex;align-items:center;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap}
+  .fl{font-size:10px;color:var(--hint);text-transform:uppercase;letter-spacing:.5px}
+  .pill{font-size:12px;padding:4px 11px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+  .pill:hover,.pill.on{background:var(--text);color:#fff;border-color:var(--text)}
+  .pill.pp.on{background:var(--blue);border-color:var(--blue)}
+  .pill.pt.on{background:var(--purple);border-color:var(--purple)}
+
+  /* BOARD */
+  .board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:start}
+  .col-h{display:flex;align-items:center;justify-content:space-between;padding:0 4px 10px}
+  .col-t{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:flex;align-items:center;gap:7px}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .dot.todo{background:var(--border-strong)}
+  .dot.prog{background:var(--blue)}
+  .dot.rev{background:var(--amber)}
+  .dot.done{background:var(--green)}
+  .cnt{font-family:'DM Mono',monospace;font-size:11px;padding:2px 7px;border-radius:10px;background:var(--bg);color:var(--hint);border:1px solid var(--border)}
+  .cards{display:flex;flex-direction:column;gap:8px;min-height:60px}
+
+  /* CARD */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 13px;transition:box-shadow .15s,border-color .15s}
+  .card:hover{box-shadow:0 3px 14px rgba(0,0,0,.07);border-color:var(--border-strong)}
+  .card.urgent{border-left:3px solid var(--red)}
+  .card.blocked{border-left:3px solid var(--amber)}
+  .card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .ab{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.8px;text-transform:uppercase;padding:2px 7px;border-radius:3px;font-weight:500}
+  .ab.PAMPA{background:var(--blue-l);color:var(--blue)}
+  .ab.NAVEIA{background:var(--purple-l);color:var(--purple)}
+  .ab.BOSQUE{background:var(--green-l);color:var(--green)}
+  .ab.MOSHU{background:var(--accent-l);color:var(--accent)}
+  .ab.LUISAS{background:#FBEAF0;color:#72243E}
+  .ab.ZARAUTZ{background:var(--green-l);color:#085041}
+  .ab.DTM{background:var(--amber-l);color:var(--amber)}
+  .ab.MADA{background:var(--red-l);color:var(--red)}
+  .ab.BAMBU{background:var(--purple-l);color:#3C3489}
+  .ab.LMDA{background:#F1EFE8;color:#5F5E5A}
+  .ab.GALAN{background:var(--accent-l);color:#993C1D}
+  .ab.DEF{background:#F1EFE8;color:var(--muted)}
+  .pd{width:6px;height:6px;border-radius:50%}
+  .pd.ALTA{background:var(--red)}
+  .pd.MEDIA{background:var(--amber)}
+  .pd.BAJA{background:var(--green)}
+  .pd.X{background:var(--border-strong)}
+  .card-task{font-size:12.5px;line-height:1.45;color:var(--text);margin-bottom:8px}
+  .card-ft{display:flex;align-items:center;justify-content:space-between}
+  .ctag{font-size:10px;color:var(--hint);background:var(--bg);padding:2px 7px;border-radius:3px;border:1px solid var(--border)}
+  .pmdot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff}
+  .pmdot.P{background:var(--blue)}
+  .pmdot.T{background:var(--purple)}
+  .pmdot.X{background:var(--hint)}
+  .dl{font-family:'DM Mono',monospace;font-size:9px;color:var(--hint)}
+  .dl.od{color:var(--red);font-weight:600}
+  .empty{text-align:center;padding:24px 12px;color:var(--hint);font-size:12px;border:1px dashed var(--border);border-radius:8px}
+  .loading{text-align:center;padding:60px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">CHISPA<span>.</span></div>
+  <div class="topbar-r">
+    <span class="lastsync" id="ls">—</span>
+    <button class="sync-btn" onclick="sync()"><span class="spin" id="si">↻</span> Actualizar</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="setup" id="setup">
+    <h3>Conectar con Google Sheets — un solo paso</h3>
+    <p>Seguí estos pasos para generar tu URL de conexión (gratis, tarda 3 minutos, se hace una sola vez):</p>
+    <ol>
+      <li>Abrí tu Google Sheet → menú <strong>Extensiones</strong> → <strong>Apps Script</strong></li>
+      <li>Borrá todo el contenido y pegá el código de abajo → <strong>Guardar</strong> (ícono del diskette)</li>
+      <li>Click en <strong>Implementar</strong> → <strong>Nueva implementación</strong> → Tipo: <strong>Aplicación web</strong> → Ejecutar como: <strong>Yo</strong> → Quién puede acceder: <strong>Cualquier usuario</strong> → <strong>Implementar</strong></li>
+      <li>Copiá la URL que aparece y pegala acá abajo</li>
+    </ol>
+    <p><strong>Código para Apps Script:</strong></p>
+    <code id="gasCode" style="display:block;white-space:pre-wrap;padding:10px;margin-bottom:1rem;font-size:10px;line-height:1.6">function doGet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Chispa Tareas") || ss.getSheets()[1];
+  var data = sheet.getDataRange().getValues();
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}</code>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:.75rem">⚠️ En el paso 3, la primera vez te va a pedir que autorices el acceso — aceptá con tu cuenta de Google.</p>
+    <div class="url-row">
+      <input class="url-input" id="gasUrl" placeholder="https://script.google.com/macros/s/XXXX/exec" />
+      <button class="btn-conn" onclick="connect()">Conectar</button>
+    </div>
+  </div>
+
+  <div class="error" id="err"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-n" id="sT">—</div><div class="stat-l">Tareas activas</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--blue)" id="sW">—</div><div class="stat-l">En progreso</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--amber)" id="sR">—</div><div class="stat-l">Esperando</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--red)" id="sU">—</div><div class="stat-l">Prioridad alta</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--green)" id="sD">—</div><div class="stat-l">Resueltas</div></div>
+  </div>
+
+  <div class="filters">
+    <span class="fl">Cuenta</span>
+    <button class="pill on" onclick="filt('a','all',this)">Todas</button>
+    <button class="pill" onclick="filt('a','PAMPA',this)">PAMPA</button>
+    <button class="pill" onclick="filt('a','NAVEIA',this)">NAVEIA</button>
+    <button class="pill" onclick="filt('a','BOSQUE',this)">BOSQUE</button>
+    <button class="pill" onclick="filt('a','MOSHU',this)">MOSHU</button>
+    <button class="pill" onclick="filt('a','LUISAS',this)">LUISAS</button>
+    <button class="pill" onclick="filt('a','ZARAUTZ',this)">ZARAUTZ</button>
+    <button class="pill" onclick="filt('a','DTM',this)">DTM</button>
+    <button class="pill" onclick="filt('a','MADA',this)">MADA</button>
+    <button class="pill" onclick="filt('a','BAMBU',this)">BAMBÚ</button>
+    <button class="pill" onclick="filt('a','GALAN',this)">GALÁN</button>
+    <span class="fl" style="margin-left:6px">PM</span>
+    <button class="pill on" id="pmA" onclick="filt('p','all',this)">Todas</button>
+    <button class="pill pp" onclick="filt('p','P',this)">Pili</button>
+    <button class="pill pt" onclick="filt('p','T',this)">Tatu</button>
+  </div>
+
+  <div id="loading" class="loading"><p>Configurá la conexión arriba para ver el tablero</p></div>
+
+  <div class="board" id="board" style="display:none">
+    <div>
+      <div class="col-h"><div class="col-t"><span class="dot todo"></span>Pendiente</div><span class="cnt" id="cA">0</span></div>
+      <div class="cards" id="cTodo"></div>
+    </div>
+    <div>
+      <div class="col-h"><div class="col-t"><span class="dot prog"></span>En progreso</div><span class="cnt" id="cB">0</span></div>
+      <div class="cards" id="cProg"></div>
+    </div>
+    <div>
+      <div class="col-h"><div class="col-t"><span class="dot rev"></span>Esperando</div><span class="cnt" id="cC">0</span></div>
+      <div class="cards" id="cRev"></div>
+    </div>
+    <div>
+      <div class="col-h"><div class="col-t"><span class="dot done"></span>Resuelto</div><span class="cnt" id="cD">0</span></div>
+      <div class="cards" id="cDone"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = '1cbo_iW1VNCLa1Qi_aGI_Z09AxkT8NujSV_4czUhGMEE';
+let tasks=[], F={a:'all',p:'all'};
+let GAS_URL = localStorage.getItem('cs_gas') || '';
+
+if(GAS_URL){ document.getElementById('gasUrl').value=GAS_URL; document.getElementById('setup').style.display='none'; sync(); }
+
+function connect(){
+  const u = document.getElementById('gasUrl').value.trim();
+  if(!u || !u.includes('script.google.com')){ showErr('Pegá la URL del Apps Script (debe contener script.google.com)'); return; }
+  GAS_URL=u; localStorage.setItem('cs_gas',u);
+  document.getElementById('setup').style.display='none';
+  sync();
+}
+
+function normAcct(r){
+  if(!r) return 'DEF';
+  const m=r.trim().toUpperCase();
+  const map={'PAMPA':'PAMPA','NAVEIA':'NAVEIA','BOSQUE':'BOSQUE','MOSHU':'MOSHU',
+    "LUISA'S":'LUISAS','LUISAS':'LUISAS','LUISA':'LUISAS',
+    'ZARAUTZ':'ZARAUTZ','TERRAZZA':'ZARAUTZ','LA TERRAZZA':'ZARAUTZ',
+    'DTM':'DTM','DOWN TOWN':'DTM','MADA':'MADA',
+    'BAMBÚ':'BAMBU','BAMBU':'BAMBU','GALÁN':'GALAN','GALAN':'GALAN',
+    'MI CAPRICHO':'MICAPRICHO','LMDA':'LMDA','MEDIALUNAS':'LMDA'};
+  for(const [k,v] of Object.entries(map)) if(m.includes(k)) return v;
+  return m.split(' ')[0].substring(0,8)||'DEF';
+}
+
+function mapSt(s){
+  if(!s) return 'todo';
+  const v=s.trim().toUpperCase();
+  if(v==='DONE') return 'done';
+  if(v==='WIP') return 'prog';
+  if(v.includes('REVIS')||v==='REVIEW') return 'rev';
+  return 'todo';
+}
+
+function isOD(d){
+  if(!d) return false;
+  try{ const p=d.split('/'); return p.length>=3 && new Date(p[2],+p[1]-1,+p[0])<new Date(); }catch{return false;}
+}
+
+function findCols(header){
+  const h=header.map(c=>String(c).toUpperCase().trim());
+  return {
+    M: h.findIndex(c=>c.includes('MARCA')||c.includes('CLIENTE')),
+    D: h.findIndex(c=>c.includes('DESCRIP')),
+    C: h.findIndex(c=>c.includes('CATEG')),
+    P: h.findIndex(c=>c.includes('PRIOR')),
+    Q: h.findIndex(c=>c.includes('QUIEN')||c==='PM'),
+    S: h.findIndex(c=>c==='STATUS'||c.includes('ESTADO')),
+    L: h.findIndex(c=>c.includes('DEADLINE')||(c.includes('FECHA')&&h.indexOf(c)>0)),
+  };
+}
+
+async function sync(){
+  if(!GAS_URL){ document.getElementById('setup').style.display='block'; return; }
+  const si=document.getElementById('si'); si.classList.add('go');
+  showErr('');
+  try{
+    const res = await Promise.race([
+      fetch(GAS_URL, {cache:'no-store'}),
+      new Promise((_,r)=>setTimeout(()=>r(new Error('Tardó demasiado. Intentá de nuevo.')),12000))
+    ]);
+    if(!res.ok) throw new Error(`Error ${res.status}`);
+    const raw = await res.json();
+    if(!Array.isArray(raw)||raw.length<2) throw new Error('El Sheet devolvió datos vacíos. Verificá que la pestaña de tareas tenga datos.');
+
+    // encontrar fila de header
+    let hIdx=raw.findIndex(r=>r.some(c=>String(c).toUpperCase().includes('MARCA')||String(c).toUpperCase()==='STATUS'));
+    if(hIdx<0) hIdx=0;
+    const cols=findCols(raw[hIdx]);
+
+    tasks = raw.slice(hIdx+1)
+      .filter(r=> cols.M>=0 && r[cols.M] && String(r[cols.M]).trim() && cols.S>=0 && r[cols.S] && String(r[cols.S]).trim())
+      .map((r,i)=>({
+        id:i,
+        acct: normAcct(String(r[cols.M]||'')),
+        desc: cols.D>=0 ? String(r[cols.D]||'') : '',
+        cat:  cols.C>=0 ? String(r[cols.C]||'').split(',')[0].trim() : '',
+        prio: cols.P>=0 ? String(r[cols.P]||'').trim().toUpperCase() : '',
+        pm:   cols.Q>=0 ? String(r[cols.Q]||'').trim() : '',
+        st:   mapSt(cols.S>=0 ? String(r[cols.S]||'') : ''),
+        rawS: cols.S>=0 ? String(r[cols.S]||'') : '',
+        dl:   cols.L>=0 ? String(r[cols.L]||'') : '',
+      }));
+
+    document.getElementById('ls').textContent = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('loading').style.display='none';
+    document.getElementById('board').style.display='grid';
+    render();
+  }catch(e){ showErr(e.message); }
+  finally{ si.classList.remove('go'); }
+}
+
+function showErr(msg){
+  const el=document.getElementById('err');
+  el.style.display = msg ? 'block' : 'none';
+  el.textContent = msg;
+}
+
+function filt(type,val,btn){
+  F[type]=val;
+  const sel = type==='p' ? '.pill.pp,.pill.pt,#pmA' : '.filters .pill:not(.pp):not(.pt):not(#pmA)';
+  document.querySelectorAll(sel).forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+
+function pmI(pm){ const p=(pm||'').toLowerCase(); if(p.includes('pili'))return 'P'; if(p.includes('tatu'))return 'T'; return (pm||'?')[0].toUpperCase(); }
+function pmC(pm){ const p=(pm||'').toLowerCase(); if(p.includes('pili'))return 'P'; if(p.includes('tatu'))return 'T'; return 'X'; }
+
+function renderCol(id,cid,list){
+  document.getElementById(cid).textContent=list.length;
+  const el=document.getElementById(id);
+  if(!list.length){ el.innerHTML='<div class="empty">Sin tareas</div>'; return; }
+  el.innerHTML=list.map(t=>{
+    const urg=t.prio==='ALTA'&&t.st!=='done';
+    const blk=t.rawS.toUpperCase().includes('BLOQ');
+    const cat=(t.cat||'').replace('COMM RRSS','RRSS').substring(0,12);
+    const desc=(t.desc||t.acct).substring(0,85)+((t.desc||'').length>85?'…':'');
+    const od=isOD(t.dl);
+    return `<div class="card${urg?' urgent':''}${blk?' blocked':''}">
+      <div class="card-hd">
+        <span class="ab ${t.acct}">${t.acct}</span>
+        <span class="pd ${t.prio||'X'}" title="${t.prio||'—'}"></span>
+      </div>
+      <div class="card-task">${desc}</div>
+      <div class="card-ft">
+        <span class="ctag">${cat||'—'}</span>
+        <div style="display:flex;align-items:center;gap:5px">
+          ${t.dl?`<span class="dl${od?' od':''}">${t.dl}</span>`:''}
+          <span class="pmdot ${pmC(t.pm)}" title="${t.pm||'?'}">${pmI(t.pm)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function render(){
+  const v=tasks.filter(t=>{
+    if(F.a!=='all'&&t.acct!==F.a) return false;
+    if(F.p!=='all'){
+      const p=(t.pm||'').toLowerCase();
+      if(F.p==='P'&&!p.includes('pili')) return false;
+      if(F.p==='T'&&!p.includes('tatu')) return false;
+    }
+    return true;
+  });
+  document.getElementById('sT').textContent=v.filter(t=>t.st!=='done').length;
+  document.getElementById('sW').textContent=v.filter(t=>t.st==='prog').length;
+  document.getElementById('sR').textContent=v.filter(t=>t.st==='rev').length;
+  document.getElementById('sU').textContent=v.filter(t=>t.prio==='ALTA').length;
+  document.getElementById('sD').textContent=v.filter(t=>t.st==='done').length;
+  const cols={todo:[],prog:[],rev:[],done:[]};
+  v.forEach(t=>{ if(cols[t.st]) cols[t.st].push(t); });
+  renderCol('cTodo','cA',cols.todo);
+  renderCol('cProg','cB',cols.prog);
+  renderCol('cRev','cC',cols.rev);
+  renderCol('cDone','cD',cols.done);
+}
+
+setInterval(()=>{ if(GAS_URL) sync(); }, 5*60*1000);
+</script>
+</body>
+</html>
