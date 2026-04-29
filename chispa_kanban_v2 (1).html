@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chispa — Panel de Cuentas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #F5F3EE;
+    --surface: #FFFFFF;
+    --border: #E2DDD6;
+    --border-strong: #C8C0B4;
+    --text: #1A1714;
+    --text-muted: #7A7268;
+    --text-hint: #B0A99F;
+    --accent: #D4521A;
+    --accent-light: #FAE8DF;
+    --blue: #1B5FA8;
+    --blue-light: #E3EDF8;
+    --amber: #B07A0A;
+    --amber-light: #FDF3D8;
+    --green: #2A7A3B;
+    --green-light: #E2F3E6;
+    --red: #C0322C;
+    --red-light: #FCEAE9;
+    --purple: #5E3FA3;
+    --purple-light: #EEE9F9;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .topbar {
+    background: var(--text); color: #fff; padding: 0 2rem; height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'DM Mono', monospace; font-size: 15px; letter-spacing: 3px; text-transform: uppercase; }
+  .logo span { color: var(--accent); }
+  .topbar-right { display: flex; align-items: center; gap: 1.25rem; }
+  .sync-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.25); color: #fff;
+    padding: 5px 14px; border-radius: 4px; font-family: 'DM Sans', sans-serif;
+    font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all .2s;
+  }
+  .sync-btn:hover { background: rgba(255,255,255,0.1); }
+  .sync-icon { font-size: 13px; display: inline-block; transition: transform .3s; }
+  .sync-icon.spinning { animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .last-sync { font-size: 11px; color: rgba(255,255,255,0.45); font-family: 'DM Mono', monospace; }
+
+  .main { padding: 1.5rem 2rem; }
+
+  /* SETUP BANNER */
+  .setup-banner {
+    background: var(--blue-light); border: 1px solid #B5D4F4; border-radius: 10px;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem; display: none;
+  }
+  .setup-banner h3 { font-size: 14px; color: var(--blue); margin-bottom: .5rem; }
+  .setup-banner p { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem; }
+  .setup-steps { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1.25rem; }
+  .step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text); line-height: 1.5; }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--blue); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+    font-weight: 600; flex-shrink: 0; margin-top: 1px;
+  }
+  .step code {
+    background: #fff; border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 6px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--blue);
+  }
+  .gid-row { display: flex; gap: 8px; align-items: center; }
+  .gid-input {
+    flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px;
+    font-family: 'DM Mono', monospace; font-size: 12px; background: #fff; color: var(--text);
+  }
+  .gid-input:focus { outline: none; border-color: var(--blue); }
+  .btn-connect {
+    background: var(--text); color: #fff; border: none; border-radius: 6px;
+    padding: 8px 20px; font-family: 'DM Sans', sans-serif; font-size: 13px;
+    cursor: pointer; white-space: nowrap; transition: opacity .15s;
+  }
+  .btn-connect:hover { opacity: .85; }
+
+  .error-banner {
+    background: var(--red-light); border: 1px solid #F09595; border-radius: 8px;
+    padding: 12px 16px; font-size: 13px; color: var(--red); margin-bottom: 1rem; display: none;
+  }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stat-num { font-size: 28px; font-weight: 600; line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+
+  /* FILTERS */
+  .filters-row { display: flex; align-items: center; gap: 7px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .filter-label { font-size: 10px; color: var(--text-hint); text-transform: uppercase; letter-spacing: .5px; }
+  .pill {
+    font-size: 12px; padding: 4px 11px; border-radius: 20px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all .15s;
+  }
+  .pill:hover, .pill.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .pill.pm-pili.active { background: var(--blue); border-color: var(--blue); }
+  .pill.pm-tatu.active { background: var(--purple); border-color: var(--purple); }
+
+  /* BOARD */
+  .board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
+  .col-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 10px; }
+  .col-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); display: flex; align-items: center; gap: 7px; }
+  .col-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .col-dot.todo { background: var(--border-strong); }
+  .col-dot.prog { background: var(--blue); }
+  .col-dot.review { background: var(--amber); }
+  .col-dot.done { background: var(--green); }
+  .col-count { font-family: 'DM Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 10px; background: var(--bg); color: var(--text-hint); border: 1px solid var(--border); }
+  .col-body { display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 11px 13px; transition: box-shadow .15s, border-color .15s;
+  }
+  .card:hover { box-shadow: 0 3px 14px rgba(0,0,0,0.07); border-color: var(--border-strong); }
+  .card.urgent { border-left: 3px solid var(--red); }
+  .card.blocked { border-left: 3px solid var(--amber); }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .acct-badge {
+    font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: .8px;
+    text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 500;
+  }
+  .acct-PAMPA { background: var(--blue-light); color: var(--blue); }
+  .acct-NAVEIA { background: var(--purple-light); color: var(--purple); }
+  .acct-BOSQUE { background: var(--green-light); color: var(--green); }
+  .acct-MOSHU { background: var(--accent-light); color: var(--accent); }
+  .acct-LUISAS { background: #FBEAF0; color: #72243E; }
+  .acct-ZARAUTZ { background: var(--green-light); color: #085041; }
+  .acct-DTM { background: var(--amber-light); color: var(--amber); }
+  .acct-MADA { background: var(--red-light); color: var(--red); }
+  .acct-BAMBU { background: var(--purple-light); color: #3C3489; }
+  .acct-LMDA { background: #F1EFE8; color: #5F5E5A; }
+  .acct-GALAN { background: var(--accent-light); color: #993C1D; }
+  .acct-default { background: #F1EFE8; color: var(--text-muted); }
+  .prio-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .prio-ALTA { background: var(--red); }
+  .prio-MEDIA { background: var(--amber); }
+  .prio-BAJA { background: var(--green); }
+  .prio-default { background: var(--border-strong); }
+  .card-task { font-size: 12.5px; line-height: 1.45; color: var(--text); margin-bottom: 8px; }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; }
+  .cat-tag { font-size: 10px; color: var(--text-hint); background: var(--bg); padding: 2px 7px; border-radius: 3px; border: 1px solid var(--border); }
+  .pm-dot { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: #fff; }
+  .pm-Pili { background: var(--blue); }
+  .pm-Tatu { background: var(--purple); }
+  .pm-default { background: var(--text-hint); }
+  .deadline { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text-hint); }
+  .deadline.overdue { color: var(--red); font-weight: 600; }
+  .empty-col { text-align: center; padding: 24px 12px; color: var(--text-hint); font-size: 12px; border: 1px dashed var(--border); border-radius: 8px; }
+
+  .loading-state { text-align: center; padding: 60px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">CHISPA<span>.</span></div>
+  <div class="topbar-right">
+    <span class="last-sync" id="lastSync">—</span>
+    <button class="sync-btn" onclick="syncData()">
+      <span class="sync-icon" id="syncIcon">↻</span> Actualizar
+    </button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- SETUP BANNER — visible hasta que el sheet esté público -->
+  <div class="setup-banner" id="setupBanner">
+    <h3>Un paso para conectar tu Google Sheet</h3>
+    <p>El Kanban lee tu Sheet directamente vía CSV público. Solo tenés que hacerlo visible (solo lectura) una vez:</p>
+    <div class="setup-steps">
+      <div class="step"><div class="step-num">1</div><div>Abrí tu Google Sheet <strong>CHISPA - TAREAS 2025/26</strong></div></div>
+      <div class="step"><div class="step-num">2</div><div>Arriba a la derecha → <strong>Compartir</strong> → "Acceso general" → <strong>Cualquier persona con el enlace</strong> → Rol: <strong>Visualizador</strong> → Listo</div></div>
+      <div class="step"><div class="step-num">3</div><div>Verificá qué pestaña (tab) tiene las tareas activas y fijate el número al final de la URL cuando estás en esa pestaña. Ejemplo: <code>gid=1971311045</code></div></div>
+      <div class="step"><div class="step-num">4</div><div>Pegá ese número acá y conectá:</div></div>
+    </div>
+    <div class="gid-row">
+      <input class="gid-input" id="gidInput" placeholder="1971311045" value="1971311045" />
+      <button class="btn-connect" onclick="connectSheet()">Conectar Sheet</button>
+    </div>
+  </div>
+
+  <div id="errorBanner" class="error-banner"></div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="sTot">—</div><div class="stat-label">Tareas activas</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--blue)" id="sWip">—</div><div class="stat-label">En progreso</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--amber)" id="sRev">—</div><div class="stat-label">Esperando</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--red)" id="sUrgent">—</div><div class="stat-label">Prioridad alta</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--green)" id="sDone">—</div><div class="stat-label">Resueltas</div></div>
+  </div>
+
+  <div class="filters-row">
+    <span class="filter-label">Cuenta</span>
+    <button class="pill active" onclick="setFilter('acct','all',this)">Todas</button>
+    <button class="pill" onclick="setFilter('acct','PAMPA',this)">PAMPA</button>
+    <button class="pill" onclick="setFilter('acct','NAVEIA',this)">NAVEIA</button>
+    <button class="pill" onclick="setFilter('acct','BOSQUE',this)">BOSQUE</button>
+    <button class="pill" onclick="setFilter('acct','MOSHU',this)">MOSHU</button>
+    <button class="pill" onclick="setFilter('acct','LUISAS',this)">LUISAS</button>
+    <button class="pill" onclick="setFilter('acct','ZARAUTZ',this)">ZARAUTZ</button>
+    <button class="pill" onclick="setFilter('acct','DTM',this)">DTM</button>
+    <button class="pill" onclick="setFilter('acct','MADA',this)">MADA</button>
+    <button class="pill" onclick="setFilter('acct','BAMBU',this)">BAMBÚ</button>
+    <button class="pill" onclick="setFilter('acct','GALAN',this)">GALÁN</button>
+    <span class="filter-label" style="margin-left:6px">PM</span>
+    <button class="pill active" id="pmAll" onclick="setFilter('pm','all',this)">Todas</button>
+    <button class="pill pm-pili" onclick="setFilter('pm','Pili',this)">Pili</button>
+    <button class="pill pm-tatu" onclick="setFilter('pm','Tatu',this)">Tatu</button>
+  </div>
+
+  <div id="loadingState" class="loading-state">
+    <p style="font-size:14px;margin-bottom:.5rem">Listo para conectar</p>
+    <p style="font-size:12px;color:var(--text-hint)">Seguí los pasos de arriba para sincronizar con tu Sheet</p>
+  </div>
+
+  <div class="board" id="board" style="display:none">
+    <div>
+      <div class="col-head"><div class="col-title"><span class="col-dot todo"></span>Pendiente</div><span class="col-count" id="cTodo">0</span></div>
+      <div class="col-body" id="colTodo"></div>
+    </div>
+    <div>
+      <div class="col-head"><div class="col-title"><span class="col-dot prog"></span>En progreso</div><span class="col-count" id="cProg">0</span></div>
+      <div class="col-body" id="colProg"></div>
+    </div>
+    <div>
+      <div class="col-head"><div class="col-title"><span class="col-dot review"></span>Esperando</div><span class="col-count" id="cReview">0</span></div>
+      <div class="col-body" id="colReview"></div>
+    </div>
+    <div>
+      <div class="col-head"><div class="col-title"><span class="col-dot done"></span>Resuelto</div><span class="col-count" id="cDone">0</span></div>
+      <div class="col-body" id="colDone"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const SHEET_ID = '1cbo_iW1VNCLa1Qi_aGI_Z09AxkT8NujSV_4czUhGMEE';
+let GID = localStorage.getItem('cs_gid') || '1971311045';
+let allTasks = [];
+let filters = { acct: 'all', pm: 'all' };
+
+// ── CSV URL via proxy (evita CORS al abrir desde file://) ────────────────────
+function csvUrl(gid) {
+  const direct = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+  // allorigins.win es un proxy CORS gratuito y sin límites para uso personal
+  return `https://api.allorigins.win/get?url=${encodeURIComponent(direct)}`;
+}
+
+// ── CONNECT ──────────────────────────────────────────────────────────────────
+function connectSheet() {
+  const gid = document.getElementById('gidInput').value.trim() || GID;
+  GID = gid;
+  localStorage.setItem('cs_gid', gid);
+  syncData();
+}
+
+// ── CSV PARSER ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const rows = [];
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const row = [];
+    let inQuote = false, cell = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuote = !inQuote; }
+      else if (ch === ',' && !inQuote) { row.push(cell.trim()); cell = ''; }
+      else { cell += ch; }
+    }
+    row.push(cell.trim());
+    rows.push(row);
+  }
+  return rows;
+}
+
+// ── COLUMN DETECTION ─────────────────────────────────────────────────────────
+// Columns: MARCA | FECHA PEDIDO | DESCRIPCIÓN | CAT1 | CAT2 | PRIORIDAD | QUIEN | STATUS | DEADLINE | HECHO | LINK
+function findHeaderRow(rows) {
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const r = rows[i].map(c => c.toUpperCase());
+    if (r.some(c => c.includes('MARCA') || c === 'STATUS' || c.includes('DESCRIPCI'))) return i;
+  }
+  return 0;
+}
+
+function detectCols(headerRow) {
+  const r = headerRow.map(c => c.toUpperCase().trim());
+  return {
+    MARCA:    r.findIndex(c => c.includes('MARCA') || c.includes('CLIENTE')),
+    DESC:     r.findIndex(c => c.includes('DESCRIP')),
+    CAT:      r.findIndex(c => c.includes('CATEG')),
+    PRIO:     r.findIndex(c => c.includes('PRIOR')),
+    QUIEN:    r.findIndex(c => c.includes('QUIEN') || c.includes('PM') || c === 'WHO'),
+    STATUS:   r.findIndex(c => c === 'STATUS' || c.includes('ESTADO')),
+    DEADLINE: r.findIndex(c => c.includes('DEADLINE') || c.includes('FECHA') && r.indexOf(c) > 0),
+    HECHO:    r.findIndex(c => c === 'HECHO' || c === 'DONE' || c.includes('COMPLET')),
+  };
+}
+
+// ── NORMALISE ─────────────────────────────────────────────────────────────────
+function normaliseAcct(raw) {
+  if (!raw) return '';
+  const m = raw.trim().toUpperCase();
+  const map = {
+    'PAMPA': 'PAMPA', 'NAVEIA': 'NAVEIA', 'BOSQUE': 'BOSQUE', 'MOSHU': 'MOSHU',
+    "LUISA'S": 'LUISAS', 'LUISAS': 'LUISAS', "LUISA": 'LUISAS',
+    'ZARAUTZ': 'ZARAUTZ', 'TERRAZZA': 'ZARAUTZ', 'LA TERRAZZA': 'ZARAUTZ',
+    'DTM': 'DTM', 'DOWN TOWN': 'DTM', 'MADA': 'MADA',
+    'BAMBÚ': 'BAMBU', 'BAMBU': 'BAMBU',
+    'GALÁN': 'GALAN', 'GALAN': 'GALAN',
+    'MI CAPRICHO': 'MICAPRICHO', 'MICAPRICHO': 'MICAPRICHO',
+    'LMDA': 'LMDA', 'MEDIALUNAS': 'LMDA',
+  };
+  for (const [k, v] of Object.entries(map)) { if (m.includes(k)) return v; }
+  return m.split(' ')[0].substring(0, 10);
+}
+
+function mapStatus(raw) {
+  if (!raw) return 'todo';
+  const s = raw.trim().toUpperCase();
+  if (s === 'DONE') return 'done';
+  if (s === 'WIP') return 'prog';
+  if (s === 'REVIEW' || s.includes('REVIS')) return 'review';
+  if (s === 'TODO' || s.includes('PENDIENTE')) return 'todo';
+  return 'todo';
+}
+
+function isOverdue(str) {
+  if (!str) return false;
+  try {
+    const p = str.split('/');
+    if (p.length < 3) return false;
+    return new Date(p[2], +p[1]-1, +p[0]) < new Date();
+  } catch { return false; }
+}
+
+// ── FETCH & PARSE ─────────────────────────────────────────────────────────────
+async function syncData() {
+  const icon = document.getElementById('syncIcon');
+  icon.classList.add('spinning');
+  document.getElementById('errorBanner').style.display = 'none';
+
+  try {
+    const res = await fetch(csvUrl(GID), { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status} — verificá tu conexión a internet`);
+    const json = await res.json();
+    // allorigins devuelve { contents: "...", status: {...} }
+    if (!json.contents) throw new Error('No se pudo leer el Sheet. Verificá que esté compartido como público (Visualizador).');
+    const text = json.contents;
+    if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+      throw new Error('El Sheet no está público todavía. Seguí el paso 2 del banner de arriba.');
+    }
+
+    const rows = parseCSV(text);
+    const hIdx = findHeaderRow(rows);
+    const cols = detectCols(rows[hIdx]);
+
+    const dataRows = rows.slice(hIdx + 1).filter(r =>
+      r.length > 3 &&
+      cols.MARCA >= 0 && r[cols.MARCA] && r[cols.MARCA].trim() &&
+      cols.STATUS >= 0 && r[cols.STATUS] && r[cols.STATUS].trim()
+    );
+
+    allTasks = dataRows.map((r, i) => ({
+      id: i,
+      marca: r[cols.MARCA] || '',
+      acct: normaliseAcct(r[cols.MARCA] || ''),
+      desc: cols.DESC >= 0 ? (r[cols.DESC] || '') : '',
+      cat: cols.CAT >= 0 ? (r[cols.CAT] || '').split(',')[0].trim() : '',
+      prio: cols.PRIO >= 0 ? (r[cols.PRIO] || '').trim().toUpperCase() : '',
+      pm: cols.QUIEN >= 0 ? (r[cols.QUIEN] || '').trim() : '',
+      status: mapStatus(cols.STATUS >= 0 ? r[cols.STATUS] : ''),
+      rawStatus: cols.STATUS >= 0 ? (r[cols.STATUS] || '') : '',
+      deadline: cols.DEADLINE >= 0 ? (r[cols.DEADLINE] || '') : '',
+    }));
+
+    document.getElementById('lastSync').textContent =
+      new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('setupBanner').style.display = 'none';
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('board').style.display = 'grid';
+    render();
+
+  } catch (e) {
+    const b = document.getElementById('errorBanner');
+    b.style.display = 'block';
+    b.textContent = e.message;
+    document.getElementById('setupBanner').style.display = 'block';
+    document.getElementById('loadingState').style.display = 'none';
+  } finally {
+    icon.classList.remove('spinning');
+  }
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function setFilter(type, val, btn) {
+  filters[type] = val;
+  if (type === 'pm') {
+    document.querySelectorAll('.pill.pm-pili, .pill.pm-tatu, #pmAll').forEach(b => b.classList.remove('active'));
+  } else {
+    document.querySelectorAll('.filters-row .pill:not(.pm-pili):not(.pm-tatu):not(#pmAll)').forEach(b => b.classList.remove('active'));
+  }
+  btn.classList.add('active');
+  render();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function pmInitial(pm) {
+  if (!pm) return '?';
+  const p = pm.toLowerCase();
+  if (p.includes('pili')) return 'P';
+  if (p.includes('tatu')) return 'T';
+  if (p.includes('cami')) return 'C';
+  if (p.includes('fede')) return 'F';
+  return pm[0].toUpperCase();
+}
+function pmClass(pm) {
+  if (!pm) return 'pm-default';
+  const p = pm.toLowerCase();
+  if (p.includes('pili')) return 'pm-Pili';
+  if (p.includes('tatu')) return 'pm-Tatu';
+  return 'pm-default';
+}
+
+function renderCol(colId, countId, tasks) {
+  const el = document.getElementById(colId);
+  document.getElementById(countId).textContent = tasks.length;
+  if (!tasks.length) {
+    el.innerHTML = '<div class="empty-col">Sin tareas</div>';
+    return;
+  }
+  el.innerHTML = tasks.map(t => {
+    const urgent = t.prio === 'ALTA' && t.status !== 'done';
+    const blocked = t.rawStatus.toUpperCase().includes('BLOQ');
+    const acctClass = 'acct-' + (t.acct || 'default');
+    const prioClass = 'prio-' + (t.prio || 'default');
+    const od = isOverdue(t.deadline);
+    const catTxt = (t.cat || '').replace('COMM RRSS','RRSS').substring(0, 12);
+    const deadlineHtml = t.deadline
+      ? `<span class="deadline ${od ? 'overdue' : ''}">${t.deadline}</span>` : '';
+    const desc = t.desc ? (t.desc.substring(0, 85) + (t.desc.length > 85 ? '…' : '')) : t.marca;
+    return `<div class="card ${urgent ? 'urgent' : ''} ${blocked ? 'blocked' : ''}">
+      <div class="card-header">
+        <span class="acct-badge ${acctClass}">${t.acct || t.marca.substring(0,8)}</span>
+        <span class="prio-dot ${prioClass}" title="${t.prio || 'Sin prioridad'}"></span>
+      </div>
+      <div class="card-task">${desc}</div>
+      <div class="card-footer">
+        <span class="cat-tag">${catTxt || '—'}</span>
+        <div style="display:flex;align-items:center;gap:5px">
+          ${deadlineHtml}
+          <span class="pm-dot ${pmClass(t.pm)}" title="${t.pm || '?'}">${pmInitial(t.pm)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function render() {
+  const visible = allTasks.filter(t => {
+    if (filters.acct !== 'all' && t.acct !== filters.acct) return false;
+    if (filters.pm !== 'all') {
+      const p = t.pm.toLowerCase();
+      if (filters.pm === 'Pili' && !p.includes('pili')) return false;
+      if (filters.pm === 'Tatu' && !p.includes('tatu')) return false;
+    }
+    return true;
+  });
+
+  const active = visible.filter(t => t.status !== 'done');
+  document.getElementById('sTot').textContent = active.length;
+  document.getElementById('sWip').textContent = visible.filter(t => t.status === 'prog').length;
+  document.getElementById('sRev').textContent = visible.filter(t => t.status === 'review').length;
+  document.getElementById('sUrgent').textContent = visible.filter(t => t.prio === 'ALTA').length;
+  document.getElementById('sDone').textContent = visible.filter(t => t.status === 'done').length;
+
+  const cols = { todo: [], prog: [], review: [], done: [] };
+  visible.forEach(t => { if (cols[t.status]) cols[t.status].push(t); });
+
+  renderCol('colTodo', 'cTodo', cols.todo);
+  renderCol('colProg', 'cProg', cols.prog);
+  renderCol('colReview', 'cReview', cols.review);
+  renderCol('colDone', 'cDone', cols.done);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+// Mostrar banner de setup la primera vez
+if (!localStorage.getItem('cs_connected')) {
+  document.getElementById('setupBanner').style.display = 'block';
+} else {
+  // Ya conectado antes — intentar cargar directo
+  syncData();
+}
+
+// Auto-refresh cada 5 minutos si ya está conectado
+setInterval(() => {
+  if (localStorage.getItem('cs_connected')) syncData();
+}, 5 * 60 * 1000);
+
+// Marcar como conectado después del primer sync exitoso
+const origSync = syncData;
+window.syncData = async function() {
+  await origSync();
+  if (allTasks.length > 0) localStorage.setItem('cs_connected', '1');
+};
+</script>
+</body>
+</html>
